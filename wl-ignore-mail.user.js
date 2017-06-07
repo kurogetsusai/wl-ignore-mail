@@ -6,6 +6,7 @@
 // @include     http://www.warlight.net/*
 // @include     https://www.warlight.net/*
 // @grant       none
+// @updateURL   https://github.com/kurogetsusai/wl-ignore-mail/raw/master/wl-ignore-mail.user.js
 // ==/UserScript==
 
 'use strict';
