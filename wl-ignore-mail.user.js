@@ -144,7 +144,7 @@ function fixMyMailPage() {
 			a.style.fontSize = '9px';
 			a.onclick = function (event) {
 				const mailId = parseInt(a.parentNode.querySelector('a').href.split('=')[1], 10);
-				const data = JSON.parse(localStorage['wl-ignore-mail']);
+				const data = JSON.parse(localStorage['wl-ignore-mail'] || '{"ignored":[]}');
 
 				if (isIgnored(mailId))
 					data.ignored = data.ignored.filter(item => item !== mailId);
