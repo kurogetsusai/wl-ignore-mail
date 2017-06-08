@@ -48,7 +48,7 @@ function setMailIconMode(mode) {
  * @param {number} mailId mail thread's ID
  * @returns {boolean} true if the thread is ignored, false otherwise */
 function isIgnored(mailId) {
-	return JSON.parse(localStorage['wl-ignore-mail']).ignored.includes(mailId);
+	return (JSON.parse(localStorage['wl-ignore-mail'] || '{"ignored":[]}')).ignored.includes(mailId);
 }
 
 /** Downloads user's My Mail page.
@@ -88,7 +88,7 @@ function fixMailIcon() {
 				if (isTr) {
 					mail.unread = line.includes('UnreadTr');
 				} else {
-					mail.id = parseInt(line.split('=')[2], 10)
+					mail.id = parseInt(line.split('=')[2], 10);
 				}
 
 				mails.push(mail);
@@ -138,6 +138,7 @@ function fixMyMailPage() {
 		.forEach(tr => {
 			const td = tr.querySelector('td');
 			const a = document.createElement('a');
+			const lastA = td.querySelector('a:last-child');
 
 			a.className = "wl-ignore-mail ignore-link";
 			a.style.fontSize = '9px';
@@ -153,7 +154,11 @@ function fixMyMailPage() {
 				localStorage['wl-ignore-mail'] = JSON.stringify(data);
 				updateMyMailPageStyles();
 			};
-			td.appendChild(a);
+
+			if (lastA !== null)
+				td.insertBefore(a, lastA);
+			else
+				td.appendChild(a);
 
 			[...td.querySelectorAll('a[style^="font-size: 9px"]')]
 				.forEach(a => a.style.marginLeft = '6px');
