@@ -88,7 +88,8 @@ function downloadMailData() {
 	});
 }
 
-/** Downloads user's mail data, checks if all of them are ignored and modifies the mail icon.
+/** Modifies the mail icon.
+ * @param {array} newMails unread unignored mails' data
  * @returns {void} */
 function fixMailIcon(newMails) {
 	switch (newMails.length) {
