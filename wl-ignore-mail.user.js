@@ -2,7 +2,7 @@
 // @name        WL Ignore Mail
 // @namespace   wl-ignore-mail
 // @description Adds an option to ignore individual mail threads.
-// @version     0.2.0
+// @version     0.2.1
 // @include     http://www.warlight.net/*
 // @include     https://www.warlight.net/*
 // @grant       none
@@ -26,13 +26,11 @@ function saveData(data) {
 
 /** Sets mail icon's target URL.
  * @param {string} url new URL for the mail icon
- * @param {boolean} [defaultOnly=true] if true, sets only if the current target is set to the WL default one
  * @returns {void} */
-function setMailIconTarget(url, defaultOnly = true) {
+function setMailIconTarget(url) {
 	const redirLink = document.getElementById('MailLink');
 
-	if (redirLink.href.endsWith('/Discussion/MyMail?redir=1') || !defaultOnly)
-		redirLink.href = url;
+	redirLink.href = url;
 }
 
 /** Toggles visibility of the mail icons.
@@ -92,52 +90,26 @@ function downloadMailData() {
 
 /** Downloads user's mail data, checks if all of them are ignored and modifies the mail icon.
  * @returns {void} */
-function fixMailIcon() {
-	downloadMailData().then(mailData => {
-		const mails = mailData
-			.split('\n')
-			.map(line => line.trim())
-			.filter(line => line.match(/^<tr|^<a href="\/Discussion\/\?ID=/))
-			.slice(2, -1)
-			.reduce((mails, line) => {
-				const isTr = line.startsWith('<tr');
-				const mail = isTr ? {} : mails.pop();
-
-				if (isTr) {
-					mail.unread = line.includes('UnreadTr');
-				} else {
-					mail.id = parseInt(line.split('=')[2], 10);
-				}
-
-				mails.push(mail);
-
-				return mails;
-			}, []);
-
-		const newMails = mails.filter(mail => mail.unread && !isIgnored(mail.id));
-
-		switch (newMails.length) {
-		case 0:
-			setMailIconTarget('/Discussion/MyMail');
-			setMailIconMode('normal');
-			break;
-		case 1:
-			setMailIconTarget('/Discussion/?ID=' + newMails[0].id);
-			setMailIconMode('flashing');
-			break;
-		default:
-			setMailIconTarget('/Discussion/MyMail');
-			setMailIconMode('flashing');
-		}
-	}).catch(error => {
-		console.log(error);
-	});
+function fixMailIcon(newMails) {
+	switch (newMails.length) {
+	case 0:
+		setMailIconTarget('/Discussion/MyMail');
+		setMailIconMode('normal');
+		break;
+	case 1:
+		setMailIconTarget('/Discussion/?ID=' + newMails[0].id);
+		setMailIconMode('flashing');
+		break;
+	default:
+		setMailIconTarget('/Discussion/MyMail');
+		setMailIconMode('flashing');
+	}
 }
 
 /** Updates the My Mail page's appearance.
  * @returns {void} */
 function updateMyMailPageStyles() {
-	setMailIconMode('normal');
+	const newMails = [];
 
 	[...document.querySelectorAll('#MainSiteContent table.region > tbody > tr')]
 		.slice(1)
@@ -154,9 +126,14 @@ function updateMyMailPageStyles() {
 				tr.style.backgroundColor = '#333';
 			else if (unread) {
 				tr.style.backgroundColor = '#323400';
-				setMailIconMode('flashing');
+				newMails.push({
+					unread: true,
+					id: mailId
+				});
 			}
 		});
+
+	fixMailIcon(newMails);
 }
 
 /** Adds the ignore buttons to the My Mail page and updates styles.
@@ -196,10 +173,38 @@ function fixMyMailPage() {
 	updateMyMailPageStyles();
 }
 
-if (document.getElementById('MailImgFlashing').style.display !== 'none') {
-	setMailIconMode('neither');
-	fixMailIcon();
-}
+downloadMailData().then(mailData => {
+	const mails = mailData
+		.split('\n')
+		.map(line => line.trim())
+		.filter(line => line.match(/^<tr|^<a href="\/Discussion\/\?ID=/))
+		.slice(2, -1)
+		.reduce((mails, line) => {
+			const isTr = line.startsWith('<tr');
+			const mail = isTr ? {} : mails.pop();
 
-if (location.href.includes('/Discussion/MyMail'))
-	fixMyMailPage();
+			if (isTr) {
+				mail.unread = line.includes('UnreadTr');
+			} else {
+				mail.id = parseInt(line.split('=')[2], 10);
+			}
+
+			mails.push(mail);
+
+			return mails;
+		}, []);
+
+	const newMails = mails.filter(mail => mail.unread && !isIgnored(mail.id));
+
+	if (document.getElementById('MailImgFlashing').style.display === 'none') {
+		fixMailIcon([]);
+	} else {
+		setMailIconMode('neither');
+		fixMailIcon(newMails);
+	}
+
+	if (location.href.includes('/Discussion/MyMail'))
+		fixMyMailPage();
+}).catch(error => {
+	console.log(error);
+});
