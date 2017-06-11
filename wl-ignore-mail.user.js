@@ -2,7 +2,7 @@
 // @name        WL Ignore Mail
 // @namespace   wl-ignore-mail
 // @description Adds an option to ignore individual mail threads.
-// @version     0.1.1
+// @version     0.2.0
 // @include     http://www.warlight.net/*
 // @include     https://www.warlight.net/*
 // @grant       none
@@ -10,12 +10,6 @@
 // ==/UserScript==
 
 'use strict';
-
-/** Turns off mail redirection when you click the mail icon.
- * @returns {void} */
-function turnOffMailRedir() {
-	document.getElementById('MailLink').href = '/Discussion/MyMail';
-}
 
 /** Reads the data stored in local storage.
  * @returns {object} the data */
@@ -28,6 +22,17 @@ function readData() {
  * @returns {void} */
 function saveData(data) {
 	localStorage['wl-ignore-mail'] = JSON.stringify(data);
+}
+
+/** Sets mail icon's target URL.
+ * @param {string} url new URL for the mail icon
+ * @param {boolean} [defaultOnly=true] if true, sets only if the current target is set to the WL default one
+ * @returns {void} */
+function setMailIconTarget(url, defaultOnly = true) {
+	const redirLink = document.getElementById('MailLink');
+
+	if (redirLink.href.endsWith('/Discussion/MyMail?redir=1') || !defaultOnly)
+		redirLink.href = url;
 }
 
 /** Toggles visibility of the mail icons.
@@ -109,10 +114,21 @@ function fixMailIcon() {
 				return mails;
 			}, []);
 
-		if (mails.filter(mail => mail.unread && !isIgnored(mail.id)).length === 0)
+		const newMails = mails.filter(mail => mail.unread && !isIgnored(mail.id));
+
+		switch (newMails.length) {
+		case 0:
+			setMailIconTarget('/Discussion/MyMail');
 			setMailIconMode('normal');
-		else
+			break;
+		case 1:
+			setMailIconTarget('/Discussion/?ID=' + newMails[0].id);
 			setMailIconMode('flashing');
+			break;
+		default:
+			setMailIconTarget('/Discussion/MyMail');
+			setMailIconMode('flashing');
+		}
 	}).catch(error => {
 		console.log(error);
 	});
@@ -179,8 +195,6 @@ function fixMyMailPage() {
 
 	updateMyMailPageStyles();
 }
-
-turnOffMailRedir();
 
 if (document.getElementById('MailImgFlashing').style.display !== 'none') {
 	setMailIconMode('neither');

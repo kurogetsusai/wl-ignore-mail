@@ -1,6 +1,6 @@
 {
 	"name": "wl-ignore-mail",
-	"version": "0.1.1",
+	"version": "0.2.0",
 	"description": "Adds an option to ignore individual mail threads.",
 	"main": "wl-ignore-mail.user.js",
 	"scripts": {
