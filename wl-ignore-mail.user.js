@@ -2,7 +2,7 @@
 // @name        WL Ignore Mail
 // @namespace   wl-ignore-mail
 // @description Adds an option to ignore individual mail threads.
-// @version     0.2.1
+// @version     0.2.2
 // @include     http://www.warlight.net/*
 // @include     https://www.warlight.net/*
 // @grant       none
@@ -97,7 +97,8 @@ function fixMailIcon(newMails) {
 		setMailIconMode('normal');
 		break;
 	case 1:
-		setMailIconTarget('/Discussion/?ID=' + newMails[0].id);
+		setMailIconTarget('/Discussion/?ID=' + newMails[0].id +
+		(newMails[0].offset === undefined ? '' : ('&Offset=' + newMails[0].offset)));
 		setMailIconMode('flashing');
 		break;
 	default:
@@ -115,7 +116,8 @@ function updateMyMailPageStyles() {
 		.slice(1)
 		.forEach(tr => {
 			const td = tr.querySelector('td');
-			const mailId =  parseInt(td.querySelector('a').href.split('=')[1], 10);
+			const mailId = parseInt(td.querySelector('a').href.split('=')[1], 10);
+			const offset = parseInt(tr.querySelector('a:last-child').href.split('=').reverse()[0], 10) || undefined;
 			const ignored = isIgnored(mailId);
 			const unread = tr.className.includes('UnreadTr');
 			const a = td.querySelector('a.wl-ignore-mail.ignore-link');
@@ -126,8 +128,10 @@ function updateMyMailPageStyles() {
 				tr.style.backgroundColor = '#333';
 			else if (unread) {
 				tr.style.backgroundColor = '#323400';
+
 				newMails.push({
 					unread: true,
+					offset: offset,
 					id: mailId
 				});
 			}
@@ -177,17 +181,18 @@ downloadMailData().then(mailData => {
 	const mails = mailData
 		.split('\n')
 		.map(line => line.trim())
-		.filter(line => line.match(/^<tr|^<a href="\/Discussion\/\?ID=/))
+		.filter(line => line.match(/^<tr|^<a href="\/Discussion\/\?ID=|Jump to Last Page/))
 		.slice(2, -1)
 		.reduce((mails, line) => {
 			const isTr = line.startsWith('<tr');
 			const mail = isTr ? {} : mails.pop();
 
-			if (isTr) {
+			if (isTr)
 				mail.unread = line.includes('UnreadTr');
-			} else {
+			else if (line.startsWith('<a href="/Discussion/?ID='))
 				mail.id = parseInt(line.split('=')[2], 10);
-			}
+			else if (line.includes('Jump to Last Page'))
+				mail.offset = parseInt(line.split('=')[4], 10);
 
 			mails.push(mail);
 
